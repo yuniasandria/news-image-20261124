@@ -1,16 +1,32 @@
 #!/usr/bin/env python3
 """Sum up Tuesday 24 November 2026's world news in one 1024x1024 image.
 
-Pure stdlib (zlib + struct + the generated bitmap font data in fontdata.py).
+Pure stdlib (zlib + struct + the compact bitmap font data in fontblob.py).
 Deterministic: same bytes on every run. Writes /output/entry.png by default.
 """
+import base64
+import json
 import os
 import struct
 import sys
 import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fontdata import FONTS  # noqa: E402
+from fontblob import BLOB  # noqa: E402
+
+
+def _load_fonts():
+    """Decode the compact font blob into the FONTS dict (int glyph keys)."""
+    raw = json.loads(zlib.decompress(base64.b64decode(BLOB)))
+    fonts = {}
+    for name, spec in raw.items():
+        glyphs = {int(code): tuple(g) for code, g in spec["glyphs"].items()}
+        fonts[name] = {"ascent": spec["ascent"], "descent": spec["descent"],
+                       "glyphs": glyphs}
+    return fonts
+
+
+FONTS = _load_fonts()
 
 W = H = 1024
 
